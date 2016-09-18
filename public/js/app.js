@@ -146,10 +146,6 @@ var mainCtrl = {
     lastScrolled = 0;
     window.scrollTo(0,0);
   },
-
-  postUpdate : function(updateData) {
-    
-  }
 }
 
 //Misc Functions
