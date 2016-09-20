@@ -567,11 +567,11 @@ $color1:#24B3A7;
   justify-content: space-between;
 }
 
-.post-content-aside-likes-container {
+.post-content-aside-likes-container, .post-content-aside-likes-container {
   display: flex;
 }
 
-.post-content-aside-likes-container svg {
+.post-content-aside-likes-container svg, .post-content-aside-likes-container svg {
   margin-right:8px;
 }
 
@@ -710,11 +710,51 @@ $color1:#24B3A7;
   margin-top:20px;
 }
 
+.newPost__cover {
+  width: 100%;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0,0,0,0.1);
+  margin-bottom:30px;
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.newPost__cover:hover {
+  cursor: pointer;
+  border:1px solid rgba(0,0,0,0.15);
+  background:rgba(0,0,0,0.05);
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.newPost__cover img {
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+
+.newPost__preview {
+  height:auto;
+}
+
+.newPost__preview:hover {
+
+}
+
+.newPost__preview .subheader {
+  display: none;
+}
+
+.newPost__preview img {
+  display: block;
+  height: auto;
+}
+
 .newPost__headerPlaceholder, .newPost__bodyPlaceholder {
   position: absolute;
   pointer-events: none;
   opacity: 0.4;
-  margin:10px 0px;
 }
 
 .newPost__header .header {
@@ -731,13 +771,14 @@ $color1:#24B3A7;
 
 .newPost__body .body__serif {
   min-height: 32px;
-  margin: 20px 0;
+  margin: 10px 0;
 }
 
 .newPost-rightColumn__section {
   display: flex;
   align-items: center;
   padding:10px 0px;
+  position: relative;
 }
 
 .newPost-rightColumn__section:first-child {
@@ -752,6 +793,39 @@ $color1:#24B3A7;
   font-size:16px;
   font-weight: 600;
   margin:0px 16px 0 8px;
+}
+
+.newPost-project__text:hover {
+  cursor: pointer;
+}
+
+.newPost-project__dropdown {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: white;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  z-index: 1;
+  max-height: 200px;
+  overflow: scroll;
+  display:none;
+}
+
+.dropdownOpen.newPost-project .newPost-project__dropdown {
+  display: block;
+}
+
+.newPost-project__selector {
+  width: 150px;
+  padding: 10px 16px;
+  font-size: 18px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.newPost-project__selector:hover {
+  cursor: pointer;
+  background:rgba(0,0,0,0.05);
 }
 
 .newPost-preview__text {
@@ -784,6 +858,24 @@ $color1:#24B3A7;
 
 .newPost-editor svg:last-child {
   margin-right:0;
+}
+
+.newPost-editor button {
+  border:0;
+  background:none;
+  padding:0 5px;
+}
+
+.newPost-editor button:first-child {
+  padding-left:0;
+}
+
+.newPost-editor button:last-child {
+  padding-right: 0;
+}
+
+.newPost-editor button:hover {
+  cursor: pointer
 }
 
 /* -- SEC_CARD --*/

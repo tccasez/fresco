@@ -145,6 +145,9 @@ function onStart() {
       },
 
       '/write-post' : {
+        '/:postId' : {
+          on: function(postId) {view.newPost.show(postId); view.newPost.loadDraft(postId)}
+        },
         on: function() {view.newPost.show()}
       },
 
@@ -200,14 +203,56 @@ function onStart() {
     view.feed.show();
   });
 
+  $('body').on('click', '.newPost-project__text', function(e) {
+    mainCtrl.addDropdown('.newPost-project');
+  });
+
+  $('body').on('click', '.newPost-project__selector', function(e) {
+    mainCtrl.draft.changeProject(e);
+  });
+
+  $('body').on('keypress', '.newPost__header', function(e) {
+    if (e.keyCode == 13) {
+      e.preventDefault();
+    }
+
+    else {
+      hideLabel(e.currentTarget);
+    }
+  });
+
+  $('body').on('click', '.newPost__boldButton', function(e) {
+    mainCtrl.draft.bold(e);
+  });
+
+  $('body').on('click', '.newPost__italicButton', function(e) {
+    mainCtrl.draft.italic(e);
+  });
+
+  $('body').on('click', '.newPost__largerButton', function(e) {
+    mainCtrl.draft.larger(e);
+  });
+
+  $('body').on('click', '.newPost__smallerButton', function(e) {
+    mainCtrl.draft.smaller(e);
+  });
+
+  $('body').on('click', '.newPost__imageButton', function(e) {
+    mainCtrl.draft.insertImage(e);
+  });
+
+  $('body').on('click', '.newPost__linkButton', function(e) {
+    mainCtrl.draft.insertLink(e);
+  });
+
   window.addEventListener('scroll', function(e) {
-    var view = $('html').attr('data-view');
+    var currView = $('html').attr('data-view');
 
     var scrollTop = $(window).scrollTop();
-    var elementOffset = $('#section__' + view + ' .section-rightColumn').offset().top;
+    var elementOffset = $('#section__' + currView + ' .section-rightColumn').offset().top;
     var fromTop = (elementOffset - scrollTop);
 
-    switch (view) {
+    switch (currView) {
       case 'newPost':
         followOnScroll('#section__newPost .section-rightColumn', fromTop);
         break;
@@ -217,14 +262,13 @@ function onStart() {
         lastScrolled = scrollTop;
 
         var initLocation = $('.post-author').height() + $('.post-cover').height();
-        console.log(scrollTop)
 
         if (fromTop <= 76 && velocity > 0) {
-          followOnScroll('#section__' + view + ' .section-rightColumn', fromTop);
+          followOnScroll('#section__' + currView + ' .section-rightColumn', fromTop);
         }
 
         else if (scrollTop <= initLocation && velocity < 0) {
-          unfollowOnScroll('#section__' + view + ' .section-rightColumn', true, 0);
+          unfollowOnScroll('#section__' + currView + ' .section-rightColumn', true, 0);
         }
         break;
 
@@ -238,12 +282,12 @@ function onStart() {
 
         if (fromTop < -40 && velocity > 0 || fromTop > 76 && velocity < 0) {
           console.log('followOnScroll');
-          followOnScroll('#section__' + view + ' .section-rightColumn', fromTop);
+          followOnScroll('#section__' + currView + ' .section-rightColumn', fromTop);
         }
 
         else if (velocity < 0 && fromTop < -40 || velocity > 0 && fromTop > 76) {
           console.log('unfollowOnScroll');
-          unfollowOnScroll('#section__' + view + ' .section-rightColumn', false);
+          unfollowOnScroll('#section__' + currView + ' .section-rightColumn', false);
         }
         break;
     }
@@ -291,6 +335,7 @@ var view = {
             strokeWidth:'2px',
             textColor:'#000000',
           };
+
           for (var prop in postVal.likes) {
             if (prop == currUser.uid) {
               likeButton = {fill:'#24B3A7', strokeWidth:'0px', textColor:'#24B3A7',};
@@ -370,6 +415,31 @@ var view = {
         $('.post-cover__img').attr('src', coverImg);
         $('.post-content-main').empty();
 
+        var likes = 0
+        if (postVal.likes) {
+          var likes = Object.keys(postVal.likes).length;
+        }
+
+        var likeButton = {
+          fill:'#ffffff',
+          strokeWidth:'2px',
+          textColor:'#000000',
+        };
+
+        for (var prop in postVal.likes) {
+          if (prop == currUser.uid) {
+            likeButton = {fill:'#24B3A7', strokeWidth:'0px', textColor:'#24B3A7',};
+            break;
+          }
+        }
+
+        $('.post-content-aside-likes-container svg').attr('fill', likeButton.fill).attr('strokeWidth', likeButton.strokeWidth);
+        $('.post-content-aside-likes-container p').css('color', likeButton.textColor).text(likes + ' likes');
+
+        mainCtrl.incrementPostView(updateId)
+
+        $('.post-content-aside-views-container p').text(postVal.views + ' views');
+
         //This is the loop that generates all the DOM for the content
         //
         var content = postVal.content;
@@ -400,8 +470,24 @@ var view = {
   },
 
   newPost : {
-    show: function() {
+    show: function(postId) {
       mainCtrl.changeView('newPost');
+
+      $('body').on('focusout', '.newPost__input', function(e) {
+        mainCtrl.draft.saveDraft(postId);
+      });
+
+      $('.newPost-project__dropdown').empty();
+      //Display a list of projects
+      //
+      $('.newPost-project__dropdown').append('<p class="body newPost-project__selector newPost-project__selected" data-projectId="none">No Project</p>')
+      firebase.database().ref('users/' + currUser.uid + '/projects').once('child_added').then(function(projectSnap) {
+        $('.newPost-project__dropdown').append('<p class="body newPost-project__selector" data-projectId="' + projectSnap.key + '">' + projectSnap.val().name + '</p>')
+      });
+    },
+
+    loadDraft: function() {
+      console.log('loading draft')
     }
   },
 
@@ -458,6 +544,157 @@ var mainCtrl = {
       var content = $('.feed-quickpost').find('.feed-quickpost-input-post__editable').html();
 
     },
+  },
+
+  incrementPostView: function(postId) {
+    firebase.database().ref('posts/' + postId).transaction(function(post) {
+      console.log(post.views)
+      if (post.views) {
+        //post.views += 1;
+        console.log('post');
+      }
+
+      //else {
+      //  post = 1;
+      //}
+
+      return post;
+    })
+  },
+
+  togglePostLike(postId, user) {
+    if (path + user) {
+      var update = {};
+      update[path + user] = true;
+
+      console.log(update);
+      //return firebase.database().ref().update(update);
+    }
+
+
+  },
+
+  like: function(path, user) {
+    var update = {};
+    update[path + user] = true;
+
+    console.log(update);
+    return firebase.database().ref().update(update);
+  },
+
+  unlike: function(path, id) {
+
+  },
+
+  addDropdown: function(e) {
+    $(e).addClass('dropdownOpen');
+  },
+
+  removeDropdown: function(e) {
+    console.log(e)
+    $(e).removeClass('dropdownOpen');
+  },
+
+  draft: {
+    changeProject : function(e) {
+      var i = $(e.currentTarget);
+      mainCtrl.removeDropdown(i.parent().parent());
+
+      var text = $(i).text();
+      var projectId = $(i).attr('data-projectId');
+
+      $('.newPost-project__text').text(text).attr('data-projectId', projectId);
+    },
+
+    bold : function(e) {
+      document.execCommand('bold');
+    },
+
+    italic : function(e) {
+      document.execCommand('italic');
+    },
+
+    larger : function(e) {
+      document.execCommand('increaseFontSize');
+    },
+
+    smaller : function(e) {
+      document.execCommand('decreaseFontSize');
+    },
+
+    insertImage : function(e) {
+      console.log('insertImage')
+    },
+
+    insertLink : function(e) {
+      console.log('insertLink')
+    },
+
+    saveDraft : function(draftId) {
+      var authorId = currUser.uid;
+      var authorName = currUser.displayName;
+      var authorPhoto = currUser.photoURL;
+
+      var coverUrl = $('.newPost__cover').find('.newPost__previewImg').attr('src');
+      if (!coverUrl) {
+        coverUrl = '';
+      }
+
+      var currDate = new Date();
+      var updateStamp = Date.now();
+
+      var projectId = $('.newPost-project__text').attr('data-projectId');
+      var projectName = $('.newPost-project__text').text();
+      var views = 0;
+
+      var content = {};
+
+      $('.newPost__header').children().each(function() {
+        var key = firebase.database().ref('/posts/' + draftId + '/content').push().key;
+        content[key] = {
+          actual:$(this).html(),
+          type:'title',
+          order:0,
+        };
+      })
+
+      $('.newPost__body').children().each(function() {
+        var key = firebase.database().ref('/posts/' + draftId + '/content').push().key;
+        var order = $(this).index() + 1
+        content[key] = {
+          actual:$(this).html(),
+          type:'paragraph',
+          order:order,
+        };
+      })
+
+
+      var data = {
+        author: {
+          id: authorId,
+          name: authorName,
+          photoUrl: authorPhoto,
+        },
+        coverUrl: coverUrl,
+        lastUpdated: updateStamp,
+        project: {
+          id: projectId,
+          name: projectName,
+        },
+        content,
+        views:views,
+        status:'draft',
+      }
+
+      var update = {};
+      update['/posts/' + draftId] = data;
+      console.log(update)
+      return firebase.database().ref().update(update);
+    },
+
+    publishPost: function(postData) {
+
+    }
   }
 }
 
@@ -482,4 +719,28 @@ function unfollowOnScroll(element, custom, customTop) {
     var top = customTop;
   }
   $(element).removeClass('fixed').css('left', '').css('top', top);
+}
+
+function handleFiles(files, e) {
+  var file = files[0];
+  if (file.type != 'image/jpeg' && file.type != 'image/png' && file.type != 'images/svg') {
+    alert('Picture must be a JPEG, PNG or SVG')
+  }
+
+  else {
+    $('.newPost__cover').addClass('newPost__preview')
+    $('.newPost__previewImg').remove();
+
+    var imageType = /^image\//;
+    var img = document.createElement("img");
+    img.classList.add("newPost__previewImg");
+    img.file = file;
+
+    var preview = $('.newPost__cover');
+    preview.append(img); // Assuming that "preview" is the div output where the content will be displayed.
+
+    var reader = new FileReader();
+    reader.onload = (function(aImg) { return function(e) { aImg.src = e.target.result; }; })(img);
+    reader.readAsDataURL(file);
+  }
 }
